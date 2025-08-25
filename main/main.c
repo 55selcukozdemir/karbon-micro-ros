@@ -10,127 +10,93 @@
 #include <uros_network_interfaces.h>
 #include <rcl/rcl.h>
 #include <rcl/error_handling.h>
+#include <std_msgs/msg/int32.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
-#include <rclc_parameter/rclc_parameter.h>
 
+#ifdef CONFIG_MICRO_ROS_ESP_XRCE_DDS_MIDDLEWARE
 #include <rmw_microros/rmw_microros.h>
-#include <uxr/client/config.h>
+#endif
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){printf("Failed status on line %d: %d. Aborting.\n",__LINE__,(int)temp_rc);vTaskDelete(NULL);}}
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){printf("Failed status on line %d: %d. Continuing.\n",__LINE__,(int)temp_rc);}}
 
-rclc_parameter_server_t param_server;
+rcl_publisher_t publisher;
+std_msgs__msg__Int32 msg;
 
 void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {
-    (void) timer;
-    (void) last_call_time;
-
-    int value;
-    rclc_parameter_get_int(&param_server, "param2", &value);
-    value++;
-    rclc_parameter_set_int(&param_server, "param2", (int64_t) value);
-}
-
-void on_parameter_changed(Parameter * param)
-{
-    printf("Parameter %s modified.", param->name.data);
-    switch (param->value.type)
-    {
-    case RCLC_PARAMETER_BOOL:
-        printf(" New value: %d (bool)", param->value.bool_value);
-        break;
-    case RCLC_PARAMETER_INT:
-        printf(" New value: %lld (int)", param->value.integer_value);
-        break;
-    case RCLC_PARAMETER_DOUBLE:
-        printf(" New value: %f (double)", param->value.double_value);
-        break;
-    default:
-        break;
-    }
-    printf("\n");
+	RCLC_UNUSED(last_call_time);
+	if (timer != NULL) {
+		printf("Publishing: %d\n", (int) msg.data);
+		RCSOFTCHECK(rcl_publish(&publisher, &msg, NULL));
+		msg.data++;
+	}
 }
 
 void micro_ros_task(void * arg)
 {
-
- 	rcl_ret_t rc;
 	rcl_allocator_t allocator = rcl_get_default_allocator();
 	rclc_support_t support;
 
 	rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
 	RCCHECK(rcl_init_options_init(&init_options, allocator));
+
+#ifdef CONFIG_MICRO_ROS_ESP_XRCE_DDS_MIDDLEWARE
 	rmw_init_options_t* rmw_options = rcl_init_options_get_rmw_init_options(&init_options);
 
 	// Static Agent IP and port can be used instead of autodisvery.
 	RCCHECK(rmw_uros_options_set_udp_address(CONFIG_MICRO_ROS_AGENT_IP, CONFIG_MICRO_ROS_AGENT_PORT, rmw_options));
+	//RCCHECK(rmw_uros_discover_agent(rmw_options));
+#endif
 
 	// create init_options
 	RCCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
 
-    // Create node
-    rcl_node_t node;
-    rclc_node_init_default(&node, "esp32_param_node", "", &support);
+	// create node
+	rcl_node_t node;
+	RCCHECK(rclc_node_init_default(&node, "esp32_int32_publisher", "", &support));
 
-    // Create parameter service
-    rclc_parameter_server_init_default(&param_server, &node);
+	// create publisher
+	RCCHECK(rclc_publisher_init_default(
+		&publisher,
+		&node,
+		ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+		"freertos_int32_publisher"));
 
-    // create timer,
-    rcl_timer_t timer;
-    rclc_timer_init_default(
-        &timer,
-        &support,
-        RCL_MS_TO_NS(1000),
-        timer_callback);
+	// create timer,
+	rcl_timer_t timer;
+	const unsigned int timer_timeout = 1000;
+	RCCHECK(rclc_timer_init_default(
+		&timer,
+		&support,
+		RCL_MS_TO_NS(timer_timeout),
+		timer_callback));
 
-    // Create executor
-    rclc_executor_t executor;
-    rclc_executor_init(&executor, &support.context, RCLC_PARAMETER_EXECUTOR_HANDLES_NUMBER + 1, &allocator);
-    rclc_executor_add_parameter_server(&executor, &param_server, on_parameter_changed);
-    rclc_executor_add_timer(&executor, &timer);
+	// create executor
+	rclc_executor_t executor;
+	RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
+	RCCHECK(rclc_executor_add_timer(&executor, &timer));
 
-    // Add parameters
-    rclc_add_parameter(&param_server, "param1", RCLC_PARAMETER_BOOL);
-    rclc_add_parameter(&param_server, "param2", RCLC_PARAMETER_INT);
-    rclc_add_parameter(&param_server, "param3", RCLC_PARAMETER_DOUBLE);
-
-    rclc_parameter_set_bool(&param_server, "param1", false);
-    rclc_parameter_set_int(&param_server, "param2", 10);
-    rclc_parameter_set_double(&param_server, "param3", 0.01);
-
-    bool param1;
-    int param2;
-    double param3;
-
-    rclc_parameter_get_bool(&param_server, "param1", &param1);
-    rclc_parameter_get_int(&param_server, "param2", &param2);
-    rclc_parameter_get_double(&param_server, "param3", &param3);
+	msg.data = 0;
 
 	while(1){
 		rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
-		usleep(100000);
+		usleep(10000);
 	}
 
-    // clean up
-    rc = rclc_executor_fini(&executor);
-    rc += rclc_parameter_server_fini(&param_server, &node);
-    rc += rcl_node_fini(&node);
-
-    if (rc != RCL_RET_OK) {
-        printf("Error while cleaning up!\n");
-    }
+	// free resources
+	RCCHECK(rcl_publisher_fini(&publisher, &node));
+	RCCHECK(rcl_node_fini(&node));
 
   	vTaskDelete(NULL);
 }
 
 void app_main(void)
 {
-#ifdef UCLIENT_PROFILE_UDP
-    // Start the networking if required
+#if defined(CONFIG_MICRO_ROS_ESP_NETIF_WLAN) || defined(CONFIG_MICRO_ROS_ESP_NETIF_ENET)
     ESP_ERROR_CHECK(uros_network_interface_initialize());
-#endif  // UCLIENT_PROFILE_UDP
+#endif
 
     //pin micro-ros task in APP_CPU to make PRO_CPU to deal with wifi:
     xTaskCreate(micro_ros_task,
