@@ -1,0 +1,12 @@
+{
+    "idf.port": "/dev/ttyUSB0",
+    "files.associations": {
+        "esp32_serial_transport.h": "c",
+        "int32.h": "c",
+        "rmw_microros.h": "c",
+        "custom_transport.h": "c",
+        "uart.h": "c",
+        "gpio.h": "c"
+    },
+    "idf.flashType": "UART"
+}
