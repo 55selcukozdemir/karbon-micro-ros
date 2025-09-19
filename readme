@@ -1,1 +1,3 @@
-sudo docker run -it --rm -v /dev:/dev --privileged --net=host microros/micro-ros-agent:foxy serial --dev /dev/ttyUSB0 -b 115200 -v6
+sudo docker run -it --rm -v /dev:/dev --privileged --net=host microros/micro-ros-agent:jazzy serial --dev /dev/ttyUSB0 -b 115200 -v6
+
+sudo chmod 666 /dev/ttyUSB0
