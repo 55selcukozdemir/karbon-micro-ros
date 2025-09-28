@@ -11,5 +11,7 @@ menu "micro-ROS example-app settings"
         default 5
         help
         Priority of micro-ros task higher value means higher priority
+
+
         
 endmenu
