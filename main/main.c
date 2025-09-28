@@ -9,6 +9,7 @@
 #include "driver/uart.h"
 #include "driver/gpio.h"
 
+
 #include <rcl/rcl.h>
 #include <rcl/error_handling.h>
 #include <std_msgs/msg/int32.h>
@@ -128,9 +129,9 @@ void micro_ros_task(void *arg)
 static uart_port_t uart_port = UART_NUM_0;
 void app_main(void)
 {
-#if defined(CONFIG_MICRO_ROS_ESP_NETIF_WLAN) || defined(CONFIG_MICRO_ROS_ESP_NETIF_ENET)
-    ESP_ERROR_CHECK(uros_network_interface_initialize());
-#endif
+// #if defined(CONFIG_MICRO_ROS_ESP_NETIF_WLAN) || defined(CONFIG_MICRO_ROS_ESP_NETIF_ENET)
+//     ESP_ERROR_CHECK(uros_network_interface_initialize());
+// #endif
 
     //pin micro-ros task in APP_CPU to make PRO_CPU to deal with wifi:
     xTaskCreate(micro_ros_task,
