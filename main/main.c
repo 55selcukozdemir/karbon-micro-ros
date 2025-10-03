@@ -9,7 +9,6 @@
 #include "driver/uart.h"
 #include "driver/gpio.h"
 
-
 #include <rcl/rcl.h>
 #include <rcl/error_handling.h>
 #include <std_msgs/msg/int32.h>
@@ -20,6 +19,9 @@
 #include <rmw_microxrcedds_c/config.h>
 #include <rmw_microros/rmw_microros.h>
 #include "esp32_serial_transport.h"
+#include "screen_manager.h"
+
+#include "pins.h"
 
 #define GPIO_OUTPUT_IO_0 CONFIG_GPIO_OUTPUT_0
 #define GPIO_OUTPUT_IO_1 CONFIG_GPIO_OUTPUT_1
@@ -72,12 +74,18 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 
 void front_wheel_callback(const void *msgin)
 {
-	const std_msgs__msg__Int32 * incoming_front_wheel_angel = (const std_msgs__msg__Int32 *)msgin;
+	const std_msgs__msg__Int32 *incoming_front_wheel_angel = (const std_msgs__msg__Int32 *)msgin;
+	char str[12];
+	snprintf(str, sizeof(str), "%ld", incoming_front_wheel_angel->data);
+	write_string(str);
 }
 
 void back_wheel_callback(const void *msgin)
 {
-	const std_msgs__msg__Int32 * incoming_back_wheel_angel = (const std_msgs__msg__Int32 *)msgin;
+	const std_msgs__msg__Int32 *incoming_back_wheel_angel = (const std_msgs__msg__Int32 *)msgin;
+	char str[12];
+	snprintf(str, sizeof(str), "%ld", incoming_back_wheel_angel->data);
+	write_string(str);
 }
 
 void micro_ros_task(void *arg)
@@ -129,15 +137,16 @@ void micro_ros_task(void *arg)
 static uart_port_t uart_port = UART_NUM_0;
 void app_main(void)
 {
-// #if defined(CONFIG_MICRO_ROS_ESP_NETIF_WLAN) || defined(CONFIG_MICRO_ROS_ESP_NETIF_ENET)
-//     ESP_ERROR_CHECK(uros_network_interface_initialize());
-// #endif
+	// #if defined(CONFIG_MICRO_ROS_ESP_NETIF_WLAN) || defined(CONFIG_MICRO_ROS_ESP_NETIF_ENET)
+	//     ESP_ERROR_CHECK(uros_network_interface_initialize());
+	// #endif
 
-    //pin micro-ros task in APP_CPU to make PRO_CPU to deal with wifi:
-    xTaskCreate(micro_ros_task,
-            "uros_task",
-            CONFIG_MICRO_ROS_APP_STACK,
-            NULL,
-            CONFIG_MICRO_ROS_APP_TASK_PRIO,
-            NULL);
+	i2c_master_init();
+	// pin micro-ros task in APP_CPU to make PRO_CPU to deal with wifi:
+	xTaskCreate(micro_ros_task,
+				"uros_task",
+				CONFIG_MICRO_ROS_APP_STACK,
+				NULL,
+				CONFIG_MICRO_ROS_APP_TASK_PRIO,
+				NULL);
 }
