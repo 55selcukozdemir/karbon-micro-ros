@@ -54,10 +54,14 @@ rcl_publisher_t test;
 rcl_subscription_t front_wheel_control_subscriber;
 rcl_subscription_t back_wheel_control_subscriber;
 
+rcl_subscription_t wheel_speed_control_subscriber;
+
 std_msgs__msg__String outcoming_test;
 
 std_msgs__msg__Int32 incoming_front_wheel_angel;
 std_msgs__msg__Int32 incoming_back_wheel_angel;
+
+std_msgs__msg__Int32 incoming_wheel_speed;
 
 int counter = 0;
 
@@ -88,6 +92,14 @@ void back_wheel_callback(const void *msgin)
 	write_string(str);
 }
 
+void wheel_speed_callback(const void *msgin)
+{
+	const std_msgs__msg__Int32 *incoming_back_wheel_angel = (const std_msgs__msg__Int32 *)msgin;
+	char str[12];
+	snprintf(str, sizeof(str), "%ld", incoming_back_wheel_angel->data);
+	write_string(str);
+}
+
 void micro_ros_task(void *arg)
 {
 
@@ -106,6 +118,7 @@ void micro_ros_task(void *arg)
 
 	RCCHECK(rclc_subscription_init_default(&front_wheel_control_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32), "car_front_wheel"));
 	RCCHECK(rclc_subscription_init_default(&back_wheel_control_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32), "car_back_wheel"));
+	RCCHECK(rclc_subscription_init_default(&wheel_speed_control_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32), "car_wheel_speed"));
 
 	// create timer,
 	rcl_timer_t timer;
@@ -118,6 +131,7 @@ void micro_ros_task(void *arg)
 	RCCHECK(rclc_executor_add_timer(&executor, &timer));
 	RCCHECK(rclc_executor_add_subscription(&executor, &front_wheel_control_subscriber, &incoming_front_wheel_angel, &front_wheel_callback, ON_NEW_DATA));
 	RCCHECK(rclc_executor_add_subscription(&executor, &back_wheel_control_subscriber, &incoming_back_wheel_angel, &back_wheel_callback, ON_NEW_DATA));
+	RCCHECK(rclc_executor_add_subscription(&executor, &wheel_speed_control_subscriber, &incoming_wheel_speed, &back_wheel_callback, ON_NEW_DATA));
 
 	// Fill the array with a known sequence
 	outcoming_test.data.data = (char *)malloc(STRING_BUFFER_LEN * sizeof(char));
