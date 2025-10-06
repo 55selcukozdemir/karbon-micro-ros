@@ -57,16 +57,17 @@
 
 i2c_lcd1602_info_t *lcd_info_global;
 
-void i2c_master_init(void)
+void i2c_master_initt(void)
 {
     int i2c_master_port = I2C_MASTER_NUM;
     i2c_config_t conf;
     conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = I2C_MASTER_SDA_IO;
+    conf.sda_io_num = LCD_I2C_MASTER_SDA_IO;
     conf.sda_pullup_en = GPIO_PULLUP_DISABLE; // GY-2561 provides 10kΩ pullups
-    conf.scl_io_num = I2C_MASTER_SCL_IO;
+    conf.scl_io_num = LCD_I2C_MASTER_SCL_IO;
     conf.scl_pullup_en = GPIO_PULLUP_DISABLE; // GY-2561 provides 10kΩ pullups
     conf.master.clk_speed = I2C_MASTER_FREQ_HZ;
+    printf("SDA pin: %d, SCL pin: %d", conf.sda_io_num, conf.scl_io_num);            
     i2c_param_config(i2c_master_port, &conf);
     i2c_driver_install(i2c_master_port, conf.mode,
                        I2C_MASTER_RX_BUF_LEN,

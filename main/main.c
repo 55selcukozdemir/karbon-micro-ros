@@ -8,6 +8,7 @@
 #include "esp_system.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
+#include "uros_network_interfaces.h"
 
 #include <rcl/rcl.h>
 #include <rcl/error_handling.h>
@@ -22,6 +23,7 @@
 #include "screen_manager.h"
 
 #include "pins.h"
+
 
 #define GPIO_OUTPUT_IO_0 CONFIG_GPIO_OUTPUT_0
 #define GPIO_OUTPUT_IO_1 CONFIG_GPIO_OUTPUT_1
@@ -81,7 +83,7 @@ void front_wheel_callback(const void *msgin)
 	const std_msgs__msg__Int32 *incoming_front_wheel_angel = (const std_msgs__msg__Int32 *)msgin;
 	char str[12];
 	snprintf(str, sizeof(str), "%ld", incoming_front_wheel_angel->data);
-	write_string(str);
+	// write_string(str);
 }
 
 void back_wheel_callback(const void *msgin)
@@ -89,7 +91,7 @@ void back_wheel_callback(const void *msgin)
 	const std_msgs__msg__Int32 *incoming_back_wheel_angel = (const std_msgs__msg__Int32 *)msgin;
 	char str[12];
 	snprintf(str, sizeof(str), "%ld", incoming_back_wheel_angel->data);
-	write_string(str);
+	// write_string(str);
 }
 
 void wheel_speed_callback(const void *msgin)
@@ -97,7 +99,7 @@ void wheel_speed_callback(const void *msgin)
 	const std_msgs__msg__Int32 *incoming_back_wheel_angel = (const std_msgs__msg__Int32 *)msgin;
 	char str[12];
 	snprintf(str, sizeof(str), "%ld", incoming_back_wheel_angel->data);
-	write_string(str);
+	// write_string(str);
 }
 
 void micro_ros_task(void *arg)
@@ -108,6 +110,14 @@ void micro_ros_task(void *arg)
 
 	rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
 	RCCHECK(rcl_init_options_init(&init_options, allocator));
+
+	#ifdef CONFIG_MICRO_ROS_ESP_XRCE_DDS_MIDDLEWARE
+	rmw_init_options_t* rmw_options = rcl_init_options_get_rmw_init_options(&init_options);
+
+	// Static Agent IP and port can be used instead of autodisvery.
+	RCCHECK(rmw_uros_options_set_udp_address(CONFIG_MICRO_ROS_AGENT_IP, CONFIG_MICRO_ROS_AGENT_PORT, rmw_options));
+	//RCCHECK(rmw_uros_discover_agent(rmw_options));
+#endif
 
 	RCCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
 
@@ -131,7 +141,7 @@ void micro_ros_task(void *arg)
 	RCCHECK(rclc_executor_add_timer(&executor, &timer));
 	RCCHECK(rclc_executor_add_subscription(&executor, &front_wheel_control_subscriber, &incoming_front_wheel_angel, &front_wheel_callback, ON_NEW_DATA));
 	RCCHECK(rclc_executor_add_subscription(&executor, &back_wheel_control_subscriber, &incoming_back_wheel_angel, &back_wheel_callback, ON_NEW_DATA));
-	RCCHECK(rclc_executor_add_subscription(&executor, &wheel_speed_control_subscriber, &incoming_wheel_speed, &back_wheel_callback, ON_NEW_DATA));
+	RCCHECK(rclc_executor_add_subscription(&executor, &wheel_speed_control_subscriber, &incoming_wheel_speed, &wheel_speed_callback, ON_NEW_DATA));
 
 	// Fill the array with a known sequence
 	outcoming_test.data.data = (char *)malloc(STRING_BUFFER_LEN * sizeof(char));
@@ -151,11 +161,11 @@ void micro_ros_task(void *arg)
 static uart_port_t uart_port = UART_NUM_0;
 void app_main(void)
 {
-	// #if defined(CONFIG_MICRO_ROS_ESP_NETIF_WLAN) || defined(CONFIG_MICRO_ROS_ESP_NETIF_ENET)
-	//     ESP_ERROR_CHECK(uros_network_interface_initialize());
-	// #endif
+	#if defined(CONFIG_MICRO_ROS_ESP_NETIF_WLAN) || defined(CONFIG_MICRO_ROS_ESP_NETIF_ENET)
+	    ESP_ERROR_CHECK(uros_network_interface_initialize());
+	#endif
 
-	i2c_master_init();
+	// i2c_master_initt();
 	// pin micro-ros task in APP_CPU to make PRO_CPU to deal with wifi:
 	xTaskCreate(micro_ros_task,
 				"uros_task",

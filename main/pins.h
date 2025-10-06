@@ -17,17 +17,17 @@
 #define BACK_MOTOR_RPWM_CHANEL          LEDC_CHANNEL_3
 
 // direction control pins
-#define FRONT_SERVO                     18
+#define FRONT_SERVO                     21
 #define FRONT_SERVO_CHANEL              LEDC_CHANNEL_4
 
-#define BACK_SERVO                      19
+#define BACK_SERVO                      22
 #define BACK_SERVO_CHANEL               LEDC_CHANNEL_5
 
 // LCD screen pins
-#define LCD_I2C_MASTER_SDA_IO           21
+#define LCD_I2C_MASTER_SDA_IO           18
 #define LCD_I2C_MASTER_SDA_IO_CHANNEL   LEDC_CHANNEL_6
 
-#define LCD_I2C_MASTER_SCL_IO           22
+#define LCD_I2C_MASTER_SCL_IO           19
 #define LCD_I2C_MASTER_SCL_IO_CHANNEL   LEDC_CHANNEL_7
 
 // keyboard

@@ -5,7 +5,8 @@
         "esp_log.h": "c",
         "hd44780.h": "c",
         "ets_sys.h": "c",
-        "*.txt": "c"
+        "*.txt": "c",
+        "i2c-lcd1602.h": "c"
     },
     "idf.port": "/dev/ttyUSB0",
     "idf.flashType": "UART"
