@@ -91,14 +91,17 @@ void i2c_master_initt(void)
 
     vTaskDelay(pdMS_TO_TICKS(1000));
     i2c_lcd1602_home(lcd_info);
-    i2c_lcd1602_write_string(lcd_info, "başladı");
+    i2c_lcd1602_write_string(lcd_info, "starting");
     vTaskDelay(pdMS_TO_TICKS(1000));
     lcd_info_global = lcd_info;
 }
 
 int satir = 0;
+char removee[20] = "--------------------";
 void write_string(const char *string)
 {
+    i2c_lcd1602_move_cursor(lcd_info_global, 0, satir);
+    i2c_lcd1602_write_string(lcd_info_global, removee);
     i2c_lcd1602_move_cursor(lcd_info_global, 0, satir);
     i2c_lcd1602_write_string(lcd_info_global, string);
     satir++;
