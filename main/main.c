@@ -13,6 +13,7 @@
 #include <rcl/rcl.h>
 #include <rcl/error_handling.h>
 #include <std_msgs/msg/int32.h>
+#include <std_msgs/msg/int32_multi_array.h>
 #include <std_msgs/msg/string.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
@@ -21,6 +22,7 @@
 #include <rmw_microros/rmw_microros.h>
 #include "esp32_serial_transport.h"
 #include "screen_manager.h"
+#include "servo_manager.h"
 
 #include "pins.h"
 
@@ -51,21 +53,18 @@
 #define STRING_BUFFER_LEN 50
 
 rcl_publisher_t test;
-
-rcl_subscription_t front_wheel_control_subscriber;
-rcl_subscription_t back_wheel_control_subscriber;
-
-rcl_subscription_t wheel_speed_control_subscriber;
-
 std_msgs__msg__String outcoming_test;
 
-std_msgs__msg__Int32 incoming_front_wheel_angel;
-std_msgs__msg__Int32 incoming_back_wheel_angel;
+rcl_subscription_t hiz_control_subscriber;
+rcl_subscription_t yon_control_subscriber;
+rcl_subscription_t servolar_control_subscriber;
 
-std_msgs__msg__Int32 incoming_wheel_speed;
+std_msgs__msg__Int32 incoming_hiz;
+std_msgs__msg__Int32MultiArray incoming_yon;
+std_msgs__msg__Int32MultiArray incoming_servolar;
 
+// ---------------------------
 int counter = 0;
-
 void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 {
 	(void)last_call_time;
@@ -77,35 +76,52 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 	}
 }
 
-void front_wheel_callback(const void *msgin)
-{
-	const std_msgs__msg__Int32 *incoming_front_wheel_angel = (const std_msgs__msg__Int32 *)msgin;
-	char str[12];
-	snprintf(str, sizeof(str), "%ld", incoming_front_wheel_angel->data);
-	    ESP_LOGI("front_wheel_callback", "TEST START");
-
-	write_string(str);
-}
-
-void back_wheel_callback(const void *msgin)
+// --------------------------------------
+void hiz_callback(const void *msgin)
 {
 	const std_msgs__msg__Int32 *incoming_back_wheel_angel = (const std_msgs__msg__Int32 *)msgin;
+	ESP_LOGI("sub", "hiz");
 	char str[12];
-	snprintf(str, sizeof(str), "%ld", incoming_back_wheel_angel->data);
-	write_string(str);
+	snprintf(str, sizeof(str), "Hiz:%04ld", incoming_back_wheel_angel->data);
+	lcd_yaz_motor_hizi(str);
+}
+void yon_callback(const void *msgin)
+{
+	ESP_LOGI("sub", "yon");
+	const std_msgs__msg__Int32MultiArray *msg = (const std_msgs__msg__Int32MultiArray *)msgin;
+	char temp[6];
+	char str1[12];
+	strcat(str1, "|Yon:");
+	for (int i = 0; i < msg->data.size; i++)
+	{
+		if(i == 0){
+			snprintf(temp, sizeof(temp), "%03ld", msg->data.data[i]);
+		}
+		else{
+			snprintf(temp, sizeof(temp), "-%03ld", msg->data.data[i]);
+		}
+		strcat(str1, temp); // str1'e veriyi ekle
+	}
+	ESP_LOGI("sub", "%s", str1);
+	lcd_yaz_yon(str1);
 }
 
-void wheel_speed_callback(const void *msgin)
+void servolar_callback(const void *msgin)
 {
-	const std_msgs__msg__Int32 *incoming_back_wheel_angel = (const std_msgs__msg__Int32 *)msgin;
-	char str[12];
-	snprintf(str, sizeof(str), "%ld", incoming_back_wheel_angel->data);
-	write_string(str);
+	ESP_LOGI("sub", "servo");
+	const std_msgs__msg__Int32MultiArray *msg = (const std_msgs__msg__Int32MultiArray *)msgin;
+
+	char str1[21]; // İlk string, 20 karakter sınırı + null byte
+	char str2[21]; // İkinci string, 20 karakter sınırı + null byte
+	format_data_to_strings(msg->data.data, msg->data.size, str1, str2);
+	lcd_yaz_servo_acilari(str1, str2);
 }
+// --------------------------------------
 
 void micro_ros_task(void *arg)
 {
 	i2c_master_initt();
+	servo_init();
 	write_string("basladi");
 	rcl_allocator_t allocator = rcl_get_default_allocator();
 	rclc_support_t support;
@@ -128,9 +144,9 @@ void micro_ros_task(void *arg)
 	RCCHECK(rclc_node_init_default(&node, "car_drive", "", &support));
 	RCCHECK(rclc_publisher_init_default(&test, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String), "test_micro_ros"));
 
-	RCCHECK(rclc_subscription_init_default(&front_wheel_control_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32), "car_front_wheel"));
-	RCCHECK(rclc_subscription_init_default(&back_wheel_control_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32), "car_back_wheel"));
-	RCCHECK(rclc_subscription_init_default(&wheel_speed_control_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32), "car_wheel_speed"));
+	RCCHECK(rclc_subscription_init_default(&hiz_control_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32), "hiz"));
+	RCCHECK(rclc_subscription_init_default(&yon_control_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32MultiArray), "yon"));
+	RCCHECK(rclc_subscription_init_default(&servolar_control_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32MultiArray), "servolar"));
 
 	// create timer,
 	rcl_timer_t timer;
@@ -141,23 +157,36 @@ void micro_ros_task(void *arg)
 	rclc_executor_t executor = rclc_executor_get_zero_initialized_executor();
 	RCCHECK(rclc_executor_init(&executor, &support.context, 4, &allocator));
 	RCCHECK(rclc_executor_add_timer(&executor, &timer));
-	RCCHECK(rclc_executor_add_subscription(&executor, &front_wheel_control_subscriber, &incoming_front_wheel_angel, &front_wheel_callback, ON_NEW_DATA));
-	RCCHECK(rclc_executor_add_subscription(&executor, &back_wheel_control_subscriber, &incoming_back_wheel_angel, &back_wheel_callback, ON_NEW_DATA));
-	RCCHECK(rclc_executor_add_subscription(&executor, &wheel_speed_control_subscriber, &incoming_wheel_speed, &wheel_speed_callback, ON_NEW_DATA));
+	RCCHECK(rclc_executor_add_subscription(&executor, &hiz_control_subscriber, &incoming_hiz, &hiz_callback, ON_NEW_DATA));
+	RCCHECK(rclc_executor_add_subscription(&executor, &yon_control_subscriber, &incoming_yon, &yon_callback, ON_NEW_DATA));
+	RCCHECK(rclc_executor_add_subscription(&executor, &servolar_control_subscriber, &incoming_servolar, &servolar_callback, ON_NEW_DATA));
 
 	// Fill the array with a known sequence
 	outcoming_test.data.data = (char *)malloc(STRING_BUFFER_LEN * sizeof(char));
 	outcoming_test.data.size = 0;
 	outcoming_test.data.capacity = STRING_BUFFER_LEN;
-	while(1){
+
+	// Init the memory of your array in order to provide it to the executor.
+	// If a message from ROS comes and it is bigger than this, it will be ignored, so ensure that capacities here are big enought.
+	incoming_yon.data.capacity = 2;
+	incoming_yon.data.size = 0;
+	incoming_yon.data.data = (int32_t *)malloc(incoming_yon.data.capacity * sizeof(int32_t));
+
+	incoming_servolar.data.capacity = 8;
+	incoming_servolar.data.size = 0;
+	incoming_servolar.data.data = (int32_t *)malloc(incoming_yon.data.capacity * sizeof(int32_t));
+
+	write_string("");
+	while (1)
+	{
 		rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
 		usleep(10000);
 	}
 
 	// free resources
-	RCCHECK(rcl_subscription_fini(&front_wheel_control_subscriber, &node));
-	RCCHECK(rcl_subscription_fini(&back_wheel_control_subscriber, &node));
-	RCCHECK(rcl_subscription_fini(&wheel_speed_control_subscriber, &node));
+	RCCHECK(rcl_subscription_fini(&hiz_control_subscriber, &node));
+	RCCHECK(rcl_subscription_fini(&yon_control_subscriber, &node));
+	RCCHECK(rcl_subscription_fini(&servolar_control_subscriber, &node));
 	RCCHECK(rcl_publisher_fini(&test, &node));
 	RCCHECK(rcl_node_fini(&node));
 

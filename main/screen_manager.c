@@ -40,6 +40,8 @@
 #include "smbus.h"
 #include "i2c-lcd1602.h"
 #include "pins.h"
+#include <stdint.h>
+#include <string.h>
 
 // LCD2004
 #define LCD_NUM_ROWS 4
@@ -91,22 +93,71 @@ void i2c_master_initt(void)
 
     vTaskDelay(pdMS_TO_TICKS(1000));
     i2c_lcd1602_home(lcd_info);
-    i2c_lcd1602_write_string(lcd_info, "starting");
     vTaskDelay(pdMS_TO_TICKS(1000));
     lcd_info_global = lcd_info;
 }
 
-int satir = 0;
-char removee[20] = "--------------------";
 void write_string(const char *string)
 {
-    i2c_lcd1602_move_cursor(lcd_info_global, 0, satir);
-    i2c_lcd1602_write_string(lcd_info_global, removee);
-    i2c_lcd1602_move_cursor(lcd_info_global, 0, satir);
+    i2c_lcd1602_clear(lcd_info_global);
     i2c_lcd1602_write_string(lcd_info_global, string);
-    satir++;
-    if (satir > 3)
+    vTaskDelay(pdMS_TO_TICKS(1000));
+}
+
+void lcd_yaz_motor_hizi(char *string)
+{
+
+    i2c_lcd1602_move_cursor(lcd_info_global, 0, 1); // tekrar konumla
+    i2c_lcd1602_write_string(lcd_info_global, string);
+}
+
+void lcd_yaz_yon(char *string)
+{
+    i2c_lcd1602_move_cursor(lcd_info_global, 8, 1); // tekrar konumla
+    i2c_lcd1602_write_string(lcd_info_global, string);
+}
+
+void lcd_yaz_servo_acilari(char *acilar1, char *acilar2)
+{
+    i2c_lcd1602_move_cursor(lcd_info_global, 0, 2); // tekrar konumla
+    i2c_lcd1602_write_string(lcd_info_global, acilar1);
+    i2c_lcd1602_move_cursor(lcd_info_global, 0, 3); // tekrar konumla
+    i2c_lcd1602_write_string(lcd_info_global, acilar2);
+}
+
+void format_data_to_strings(const int32_t *data, int size, char *str1, char *str2)
+{
+    char temp[6]; // 5 karakter + null byte
+    int count = 0;
+
+    // İlk 5 veriyi str1'e yazdır
+    str1[0] = '\0'; // Başlangıçta boş bir string
+    for (int i = 0; i < 5 && i < size; i++)
     {
-        satir = 0;
+        if (i == 0)
+        {
+            snprintf(temp, sizeof(temp), "%03ld", data[i]);
+        }
+        else
+        {
+            snprintf(temp, sizeof(temp), "|%03ld", data[i]);
+        }
+        strcat(str1, temp); // str1'e veriyi ekle
+        count += strlen(temp);
+    }
+
+    // Kalan verileri str2'ye yazdır
+    str2[0] = '\0'; // Başlangıçta boş bir string
+    for (int i = 5; i < size; i++)
+    {
+        if (i == 5)
+        {
+            snprintf(temp, sizeof(temp), "%03ld", data[i]);
+        }
+        else
+        {
+            snprintf(temp, sizeof(temp), "|%03ld", data[i]);
+        }
+        strcat(str2, temp); // str2'ye veriyi ekle
     }
 }
