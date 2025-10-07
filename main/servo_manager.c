@@ -7,7 +7,7 @@
 
 #define LEDC_TIMER LEDC_TIMER_0
 #define LEDC_CHANNEL LEDC_CHANNEL_0
-#define LEDC_MODE LEDC_HIGH_SPEED_MODE
+#define LEDC_MODE LEDC_LOW_SPEED_MODE
 #define LEDC_RES LEDC_TIMER_16_BIT
 #define SERVO_FREQ_HZ 50 // Servo için frekans
 
@@ -53,14 +53,14 @@ void servo_init()
     ledc_channel_config(&back_channel_cfg);
 }
 
-void back_wheel(float angle)
+void back_wheel_angle(float angle)
 {
     uint32_t duty = servo_angle_to_duty(angle);
     ledc_set_duty(LEDC_MODE, BACK_SERVO_CHANEL, duty);
     ledc_update_duty(LEDC_MODE, BACK_SERVO_CHANEL);
 }
 
-void front_wheel(float angle)
+void front_wheel_angle(float angle)
 {
     uint32_t duty = servo_angle_to_duty(angle);
     ledc_set_duty(LEDC_MODE, FRONT_SERVO_CHANEL, duty);

@@ -76,16 +76,16 @@ void back_wheel(float duty)
 {
     if (duty < 0)
     {
-        ledc_set_duty(DC_SPEED_MODE, FRONT_MOTOR_LPWM_CHANEL, duty * -1);
-        ledc_update_duty(DC_SPEED_MODE, FRONT_MOTOR_LPWM_CHANEL);
-        ledc_set_duty(DC_SPEED_MODE, FRONT_MOTOR_RPWM_CHANEL, 0);
-        ledc_update_duty(DC_SPEED_MODE, FRONT_MOTOR_RPWM_CHANEL);
+        ledc_set_duty(DC_SPEED_MODE, BACK_MOTOR_LPWM_CHANEL, duty * -1);
+        ledc_update_duty(DC_SPEED_MODE, BACK_MOTOR_LPWM_CHANEL);
+        ledc_set_duty(DC_SPEED_MODE, BACK_MOTOR_RPWM_CHANEL, 0);
+        ledc_update_duty(DC_SPEED_MODE, BACK_MOTOR_RPWM_CHANEL);
     }
     else
     {
-        ledc_set_duty(DC_SPEED_MODE, FRONT_MOTOR_RPWM_CHANEL, duty);
-        ledc_update_duty(DC_SPEED_MODE, FRONT_MOTOR_RPWM_CHANEL);
-        ledc_set_duty(DC_SPEED_MODE, FRONT_MOTOR_LPWM_CHANEL, 0);
-        ledc_update_duty(DC_SPEED_MODE, FRONT_MOTOR_LPWM_CHANEL);
+        ledc_set_duty(DC_SPEED_MODE, BACK_MOTOR_RPWM_CHANEL, duty);
+        ledc_update_duty(DC_SPEED_MODE, BACK_MOTOR_RPWM_CHANEL);
+        ledc_set_duty(DC_SPEED_MODE, BACK_MOTOR_LPWM_CHANEL, 0);
+        ledc_update_duty(DC_SPEED_MODE, BACK_MOTOR_LPWM_CHANEL);
     }
 }

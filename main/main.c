@@ -23,6 +23,7 @@
 #include "esp32_serial_transport.h"
 #include "screen_manager.h"
 #include "servo_manager.h"
+#include "dc_motor_manager.h"
 
 #include "pins.h"
 
@@ -79,16 +80,29 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 // --------------------------------------
 void hiz_callback(const void *msgin)
 {
-	const std_msgs__msg__Int32 *incoming_back_wheel_angel = (const std_msgs__msg__Int32 *)msgin;
+	const std_msgs__msg__Int32 *wheel_speet = (const std_msgs__msg__Int32 *)msgin;
 	ESP_LOGI("sub", "hiz");
+
+	front_wheel(wheel_speet->data);
+	back_wheel(wheel_speet->data);
+
 	char str[12];
-	snprintf(str, sizeof(str), "Hiz:%04ld", incoming_back_wheel_angel->data);
+	snprintf(str, sizeof(str), "Hiz:%04ld", wheel_speet->data);
 	lcd_yaz_motor_hizi(str);
 }
 void yon_callback(const void *msgin)
 {
 	ESP_LOGI("sub", "yon");
 	const std_msgs__msg__Int32MultiArray *msg = (const std_msgs__msg__Int32MultiArray *)msgin;
+
+	if(msg->data.size > 0){
+		back_wheel_angle(msg->data.data[0]);
+	}
+
+	if(msg->data.size > 1){
+		front_wheel_angle(msg->data.data[1]);
+	}
+
 	char temp[6];
 	char str1[12];
 	strcat(str1, "|Yon:");
@@ -122,6 +136,7 @@ void micro_ros_task(void *arg)
 {
 	i2c_master_initt();
 	servo_init();
+	dc_init();
 	write_string("basladi");
 	rcl_allocator_t allocator = rcl_get_default_allocator();
 	rclc_support_t support;

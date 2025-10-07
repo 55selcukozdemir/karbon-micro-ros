@@ -1,3 +1,3 @@
 void servo_init();
-void back_wheel(float angle);
-void front_wheel(float angle);
+void back_wheel_angle(float angle);
+void front_wheel_angle(float angle);
