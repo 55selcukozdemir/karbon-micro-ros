@@ -30,6 +30,29 @@
 #define LCD_I2C_MASTER_SCL_IO           19
 #define LCD_I2C_MASTER_SCL_IO_CHANNEL   LEDC_CHANNEL_7
 
+// Servolar
+#define SERVO_1                      14
+#define SERVO_1_CHANEL               LEDC_CHANNEL_0
+
+#define SERVO_2                      15
+#define SERVO_2_CHANEL               LEDC_CHANNEL_1
+
+#define SERVO_3                      16
+#define SERVO_3_CHANEL               LEDC_CHANNEL_2
+
+#define SERVO_4                      17
+#define SERVO_4_CHANEL               LEDC_CHANNEL_3
+
+#define SERVO_5                      23
+#define SERVO_5_CHANEL               LEDC_CHANNEL_4
+
+#define SERVO_6                      25
+#define SERVO_6_CHANEL               LEDC_CHANNEL_5
+
+#define SERVO_7                      26
+#define SERVO_7_CHANEL               LEDC_CHANNEL_6
+
+
 // keyboard
 #define ROW_1 34
 #define ROW_2 35

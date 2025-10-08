@@ -95,11 +95,13 @@ void yon_callback(const void *msgin)
 	ESP_LOGI("sub", "yon");
 	const std_msgs__msg__Int32MultiArray *msg = (const std_msgs__msg__Int32MultiArray *)msgin;
 
-	if(msg->data.size > 0){
+	if (msg->data.size > 0)
+	{
 		back_wheel_angle(msg->data.data[0]);
 	}
 
-	if(msg->data.size > 1){
+	if (msg->data.size > 1)
+	{
 		front_wheel_angle(msg->data.data[1]);
 	}
 
@@ -108,10 +110,12 @@ void yon_callback(const void *msgin)
 	strcat(str1, "|Yon:");
 	for (int i = 0; i < msg->data.size; i++)
 	{
-		if(i == 0){
+		if (i == 0)
+		{
 			snprintf(temp, sizeof(temp), "%03ld", msg->data.data[i]);
 		}
-		else{
+		else
+		{
 			snprintf(temp, sizeof(temp), "-%03ld", msg->data.data[i]);
 		}
 		strcat(str1, temp); // str1'e veriyi ekle
@@ -124,6 +128,35 @@ void servolar_callback(const void *msgin)
 {
 	ESP_LOGI("sub", "servo");
 	const std_msgs__msg__Int32MultiArray *msg = (const std_msgs__msg__Int32MultiArray *)msgin;
+
+	if (msg->data.size > 0)
+	{
+		servo_1_angle(msg->data.data[0]);
+	}
+	if (msg->data.size > 1)
+	{
+		servo_2_angle(msg->data.data[1]);
+	}
+	if (msg->data.size > 2)
+	{
+		servo_3_angle(msg->data.data[2]);
+	}
+	if (msg->data.size > 3)
+	{
+		servo_4_angle(msg->data.data[3]);
+	}
+	if (msg->data.size > 4)
+	{
+		servo_5_angle(msg->data.data[4]);
+	}
+	if (msg->data.size > 5)
+	{
+		servo_6_angle(msg->data.data[5]);
+	}
+	if (msg->data.size > 6)
+	{
+		servo_7_angle(msg->data.data[6]);
+	}
 
 	char str1[21]; // İlk string, 20 karakter sınırı + null byte
 	char str2[21]; // İkinci string, 20 karakter sınırı + null byte
